@@ -1,0 +1,10 @@
+{
+  "name": "the-razor",
+  "account_id": "76079c3515680b8cf8ee0902bb238ddd",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "." },
+  "routes": [
+    { "pattern": "therazor.ca", "custom_domain": true },
+    { "pattern": "www.therazor.ca", "custom_domain": true }
+  ]
+}
