@@ -9,7 +9,7 @@ Live: https://therazor.ca/ (Cloudflare Worker "the-razor", also mirrored at http
 - **Phones** get the same video as a short silent loop instead of the scroll scrub, plus a sticky Call / Book bar.
 - **Before/after slider** with a razor-blade handle, built from the first and last frames of that same video. Drag, swipe or use the arrow keys.
 - **Book without leaving the site.** Booksy's official embed (business ID 7103) runs inline in the "Book your chair" section, and every Book button opens it in a pop-up. No API keys needed. Clients see Henry's real services, prices and open times, and confirmations come from Booksy as usual.
-- **Instagram strip** with his six latest posts, each linking to the post, plus Follow buttons.
+- **Instagram strip** that updates itself from his Behold.so feed (newest six posts), each linking to the post, plus Follow buttons.
 - Services and prices (from Booksy), Gold service feature card, Meet Henry, reviews (5.0 from 204 on Booksy), hours with a live "Open now" status in Toronto time, map and directions.
 - SEO basics: title, meta description, Open Graph tags and `BarberShop` structured data.
 
@@ -24,7 +24,8 @@ Live: https://therazor.ca/ (Cloudflare Worker "the-razor", also mirrored at http
 ## Editing
 All of the settings live at the top of the `<script>` in `index.html`:
 - `IG_POSTS`: the saved Instagram posts (post ID, type and a short description). Drop a new image into `assets/ig/<id>.jpg` and add a line.
-- `IG_FEED_URL`: for a feed that updates by itself, have Henry connect his Instagram at [behold.so](https://behold.so) (free plan), copy the JSON feed URL it gives you and paste it here. The grid then pulls his newest posts automatically and falls back to the saved ones if the feed is ever down.
+- `IG_FEED_URL`: Henry's Behold.so JSON feed (connected 2026-10-29). Its posts are merged with `IG_POSTS`, newest first, so his new posts appear automatically. Instagram doesn't give Behold collab posts, which is why the saved ones stay in the mix.
+- `IG_HIDE`: post IDs to keep off the site even if they're in the feed. Henry can also hide posts inside Behold.
 - `HOURS`: opening hours used for the "Open now" badge and the highlighted day. The hours table and footer text are plain HTML just below.
 - Prices: the service list in the `#menu` section. Booksy is the source of truth for what clients actually pay.
 - Colours: CSS variables at the top of `<style>` (`--gold`, `--metal` and friends).

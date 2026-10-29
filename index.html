@@ -868,17 +868,21 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 const BOOKSY_PAGE = 'https://booksy.com/en-ca/7103_lineupforyourlineups_barbershop_977764_aurora';
 const BOOKSY_WIDGET = 'https://booksy.com/widget/code.js?id=7103&country=ca&lang=en&mode=inline';
 const IG_HANDLE = 'lineupforyourlineups';
-// Live Instagram feed: paste a Behold.so JSON feed URL here (free, Henry connects his account once).
-// Left empty, the grid shows the saved posts below.
-const IG_FEED_URL = '';
+// Live Instagram feed from Henry's Behold.so account. Its posts are merged with the saved ones
+// below, newest first, so the grid stays full even if Behold is down or skips a post
+// (Instagram doesn't hand Behold collab posts, which is why the saved ones stay in the mix).
+const IG_FEED_URL = 'https://feeds.behold.so/NWiVcaJ9hRfC1Qx5Vyxl';
 const IG_POSTS = [
-  { id: 'DV12lpfCVJl', type: 'reel', alt: 'Textured crop with a low fade, side profile in the chair' },
-  { id: 'DIrnJ4bJNW3', type: 'reel', alt: 'Henry mid-cut with hair flying off the clippers' },
-  { id: 'DIFDeIWJa9Z', type: 'reel', alt: 'Textured top with a skin fade, seen from behind' },
-  { id: 'DH7JX_ypy6u', type: 'reel', alt: 'Curly top over a low taper fade' },
-  { id: 'DHMwMXJp8w4', type: 'reel', alt: 'Swept back top with a mid fade, side view' },
-  { id: 'DHMErnWJh7V', type: 'reel', alt: 'Curly top with a fade and a sharp line up, front view' }
+  { id: 'DV12lpfCVJl', type: 'reel', date: '2026-03-13T12:00:00Z', alt: 'Textured crop with a low fade, side profile in the chair' },
+  { id: 'DIrnJ4bJNW3', type: 'reel', date: '2025-04-20T20:15:00Z', alt: 'Henry mid-cut with hair flying off the clippers' },
+  { id: 'DIFDeIWJa9Z', type: 'reel', date: '2025-04-05T12:00:00Z', alt: 'Textured top with a skin fade, seen from behind' },
+  { id: 'DH7JX_ypy6u', type: 'reel', date: '2025-04-02T00:35:11Z', alt: 'Curly top over a low taper fade' },
+  { id: 'DHMwMXJp8w4', type: 'reel', date: '2025-03-15T00:09:19Z', alt: 'Swept back top with a mid fade, side view' },
+  { id: 'DHMErnWJh7V', type: 'reel', date: '2025-03-14T18:00:00Z', alt: 'Curly top with a fade and a sharp line up, front view' }
 ];
+// Post IDs to keep off the site even if they're in the feed (the ID is the code in the post's link).
+// Henry can also hide posts himself in Behold.
+const IG_HIDE = ['DHa-nIGux7M'];
 const HOURS = { 2: [10, 20], 3: [10, 20], 4: [10, 20], 5: [10, 20], 6: [9, 18] }; // day of week: [open, close], 24h, Toronto time
 const VIDEO_URL = 'assets/hero-scrub.mp4';
 const VIDEO_BYTES = 7521549;
@@ -1307,19 +1311,37 @@ function renderIG(list) {
   igGrid.replaceChildren(...list.slice(0, 6).map(igTile));
   [...igGrid.children].forEach((c, i) => c.style.setProperty('--i', i));
 }
-renderIG(IG_POSTS.map(p => ({
+const savedIG = IG_POSTS.map(p => ({
+  id: p.id, date: p.date, type: p.type, alt: p.alt,
   href: 'https://www.instagram.com/' + (p.type === 'reel' ? 'reel/' : 'p/') + p.id + '/',
-  img: 'assets/ig/' + p.id + '.jpg', alt: p.alt, type: p.type
-})));
+  img: 'assets/ig/' + p.id + '.jpg'
+}));
+const igAlt = caption => {
+  const text = (caption || '').replace(/[•\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return 'Instagram post by @' + IG_HANDLE + (/[a-z]{3}/i.test(text) ? ': ' + text.slice(0, 100) : '');
+};
+renderIG(savedIG);
 if (IG_FEED_URL) {
   fetch(IG_FEED_URL).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(data => {
-    const posts = (Array.isArray(data) ? data : data.posts || []).map(p => ({
-      href: p.permalink,
-      img: (p.sizes && p.sizes.medium && p.sizes.medium.mediaUrl) || p.thumbnailUrl || p.mediaUrl,
-      alt: (p.prunedCaption || p.caption || 'Recent cut by Henry').slice(0, 120),
-      type: /video|reel/i.test(p.mediaType || '') ? 'reel' : 'post'
-    })).filter(p => p.href && p.img);
-    if (posts.length) renderIG(posts);
+    const live = (Array.isArray(data) ? data : data.posts || [])
+      .filter(p => p.permalink && p.visibility !== 'hidden')
+      .map(p => ({
+        id: p.permalink.split('/').filter(Boolean).pop(),
+        date: p.timestamp,
+        href: p.permalink,
+        img: (p.sizes && p.sizes.medium && p.sizes.medium.mediaUrl) || p.thumbnailUrl || p.mediaUrl,
+        alt: igAlt(p.prunedCaption || p.caption),
+        type: /video|reel/i.test(p.mediaType || '') ? 'reel' : 'post'
+      }))
+      .filter(p => p.img);
+    // saved copies win on duplicates (they use Instagram's own square crop); the feed adds anything newer
+    const byId = new Map();
+    [...savedIG, ...live].forEach(p => { if (!byId.has(p.id)) byId.set(p.id, p); });
+    const merged = [...byId.values()]
+      .filter(p => !IG_HIDE.includes(p.id))
+      .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    const same = merged.slice(0, 6).map(p => p.id).join() === savedIG.slice(0, 6).map(p => p.id).join();
+    if (merged.length && !same) renderIG(merged);
   }).catch(() => {});
 }
 
